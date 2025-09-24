@@ -1,8 +1,8 @@
 const http = require('http');
-const { WebSocketServer } = require('ws');
+const { WebSocketServer, WebSocket } = require('ws'); // 明确导入 WebSocket 类
 const fetch = require('node-fetch');
 
-const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com'; // 使用环境变量，默认为你的 Solana RPC 端点
+const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com'; // 默认 Solana 主网
 const PORT = process.env.PORT || 8080;
 
 const server = http.createServer(async (req, res) => {
@@ -17,9 +17,9 @@ const server = http.createServer(async (req, res) => {
       headers: { ...req.headers },
       body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
     };
-    delete proxyReq.headers.host; // 移除 host 头避免冲突
+    delete proxyReq.headers.host;
 
-    // 发送请求到目标
+    // 发送请求
     const proxyRes = await fetch(targetUrl, proxyReq);
     console.log(`[${new Date().toISOString()}] HTTP 响应: ${proxyRes.status}`);
 
@@ -48,11 +48,11 @@ wss.on('connection', (ws, req) => {
   const targetWsUrl = TARGET_URL.replace('https://', 'wss://') + url.pathname + url.search;
   console.log(`[${new Date().toISOString()}] WebSocket 连接: ${targetWsUrl}`);
 
-  const wsTarget = new WebSocket(targetWsUrl);
+  const wsTarget = new WebSocket(targetWsUrl); // 使用 ws 模块的 WebSocket 类
 
   wsTarget.on('open', () => {
     console.log(`[${new Date().toISOString()}] WebSocket 目标连接成功`);
-    ws.on('message', (data) => wsTarget.send(data));
+    ws.on('message', (data) => wsTarget.send(data.toString())); // 确保数据为字符串
     wsTarget.on('message', (data) => ws.send(data));
   });
 
