@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: solana-rpc-proxy
+    env: node
+    region: oregon # 可改为 singapore 或其他支持区域
+    plan: free # 免费层
+    branch: main
+    numInstances: 1
+    healthCheckPath: /
+    envVars:
+      - key: TARGET_URL
+        value: https://api.mainnet-beta.solana.com # 替换为你的 Solana RPC 端点
+      - key: NODE_ENV
+        value: production
+    autoDeploy: true
