@@ -43,47 +43,63 @@ wss.on('connection', (ws, req) => {
   const targetWsUrl = TARGET_URL.replace('https://', 'wss://') + url.pathname + url.search;
   console.log(`[${new Date().toISOString()}] WebSocket 连接: ${targetWsUrl}`);
 
-  const wsTarget = new WebSocket(targetWsUrl);
+  const wsTarget = new WebSocket(targetWsUrl, {
+    headers: {
+      'User-Agent': 'Solana-RPC-Proxy/1.0',
+    },
+  });
 
   wsTarget.on('open', () => {
     console.log(`[${new Date().toISOString()}] WebSocket 目标连接成功`);
-    ws.on('message', (data) => {
-      console.log(`[${new Date().toISOString()}] 客户端消息: ${data}`);
-      wsTarget.send(data.toString());
+    ws.on('message', (data, isBinary) => {
+      const message = isBinary ? data : data.toString();
+      console.log(`[${new Date().toISOString()}] 客户端消息: ${message}`);
+      if (wsTarget.readyState === WebSocket.OPEN) {
+        wsTarget.send(message);
+      } else {
+        console.log(`[${new Date().toISOString()}] 目标 WebSocket 未打开，状态: ${wsTarget.readyState}`);
+        ws.send(JSON.stringify({ error: 'Target WebSocket not open' }));
+      }
     });
-    wsTarget.on('message', (data) => {
-      console.log(`[${new Date().toISOString()}] 目标消息: ${data}`);
-      ws.send(data);
+
+    wsTarget.on('message', (data, isBinary) => {
+      const message = isBinary ? data : data.toString();
+      console.log(`[${new Date().toISOString()}] 目标消息: ${message}`);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(message);
+      } else {
+        console.log(`[${new Date().toISOString()}] 客户端 WebSocket 未打开，状态: ${ws.readyState}`);
+      }
     });
   });
 
   wsTarget.on('close', (code, reason) => {
-    console.log(`[${new Date().toISOString()}] WebSocket 目标关闭: code=${code}, reason=${reason}`);
-    ws.close();
+    console.log(`[${new Date().toISOString()}] WebSocket 目标关闭: code=${code}, reason=${reason.toString()}`);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.close(code, reason);
+    }
   });
 
   wsTarget.on('error', (err) => {
     console.error(`[${new Date().toISOString()}] WebSocket 目标错误: ${err.message}`);
-    ws.close();
-  });
-
-  ws.on('message', (data) => {
-    console.log(`[${new Date().toISOString()}] 客户端发送: ${data}`);
-    if (wsTarget.readyState === WebSocket.OPEN) {
-      wsTarget.send(data.toString());
-    } else {
-      console.log(`[${new Date().toISOString()}] 目标 WebSocket 未打开，状态: ${wsTarget.readyState}`);
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ error: `Target WebSocket error: ${err.message}` }));
+      ws.close(1011, 'Target WebSocket error');
     }
   });
 
   ws.on('close', (code, reason) => {
-    console.log(`[${new Date().toISOString()}] WebSocket 客户端关闭: code=${code}, reason=${reason}`);
-    wsTarget.close();
+    console.log(`[${new Date().toISOString()}] WebSocket 客户端关闭: code=${code}, reason=${reason.toString()}`);
+    if (wsTarget.readyState === WebSocket.OPEN) {
+      wsTarget.close(code, reason);
+    }
   });
 
   ws.on('error', (err) => {
     console.error(`[${new Date().toISOString()}] WebSocket 客户端错误: ${err.message}`);
-    wsTarget.close();
+    if (wsTarget.readyState === WebSocket.OPEN) {
+      wsTarget.close(1011, 'Client WebSocket error');
+    }
   });
 });
 
