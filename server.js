@@ -1,8 +1,8 @@
 const http = require('http');
-const { WebSocketServer, WebSocket } = require('ws'); // 明确导入 WebSocket 类
+const { WebSocketServer, WebSocket } = require('ws');
 const fetch = require('node-fetch');
 
-const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com'; // 默认 Solana 主网
+const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com';
 const PORT = process.env.PORT || 8080;
 
 const server = http.createServer(async (req, res) => {
@@ -11,7 +11,6 @@ const server = http.createServer(async (req, res) => {
   console.log(`[${new Date().toISOString()}] HTTP 请求: ${req.method} ${targetUrl}`);
 
   try {
-    // 准备代理请求
     const proxyReq = {
       method: req.method,
       headers: { ...req.headers },
@@ -19,11 +18,9 @@ const server = http.createServer(async (req, res) => {
     };
     delete proxyReq.headers.host;
 
-    // 发送请求
     const proxyRes = await fetch(targetUrl, proxyReq);
     console.log(`[${new Date().toISOString()}] HTTP 响应: ${proxyRes.status}`);
 
-    // 设置响应头
     res.statusCode = proxyRes.status;
     for (const [key, value] of proxyRes.headers.entries()) {
       res.setHeader(key, value);
@@ -31,33 +28,37 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Type', proxyRes.headers.get('content-type') || 'application/json');
 
-    // 流式传输响应
     proxyRes.body.pipe(res);
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] 代理错误: ${error.message}`);
+    console.error(`[${new Date().toISOString()}] HTTP 代理错误: ${error.message}`);
     res.statusCode = 502;
     res.setHeader('Content-Type', 'application/json');
     res.end(JSON.stringify({ error: error.message }));
   }
 });
 
-// WebSocket 服务
 const wss = new WebSocketServer({ server });
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const targetWsUrl = TARGET_URL.replace('https://', 'wss://') + url.pathname + url.search;
   console.log(`[${new Date().toISOString()}] WebSocket 连接: ${targetWsUrl}`);
 
-  const wsTarget = new WebSocket(targetWsUrl); // 使用 ws 模块的 WebSocket 类
+  const wsTarget = new WebSocket(targetWsUrl);
 
   wsTarget.on('open', () => {
     console.log(`[${new Date().toISOString()}] WebSocket 目标连接成功`);
-    ws.on('message', (data) => wsTarget.send(data.toString())); // 确保数据为字符串
-    wsTarget.on('message', (data) => ws.send(data));
+    ws.on('message', (data) => {
+      console.log(`[${new Date().toISOString()}] 客户端消息: ${data}`);
+      wsTarget.send(data.toString());
+    });
+    wsTarget.on('message', (data) => {
+      console.log(`[${new Date().toISOString()}] 目标消息: ${data}`);
+      ws.send(data);
+    });
   });
 
-  wsTarget.on('close', () => {
-    console.log(`[${new Date().toISOString()}] WebSocket 目标关闭`);
+  wsTarget.on('close', (code, reason) => {
+    console.log(`[${new Date().toISOString()}] WebSocket 目标关闭: code=${code}, reason=${reason}`);
     ws.close();
   });
 
@@ -66,8 +67,17 @@ wss.on('connection', (ws, req) => {
     ws.close();
   });
 
-  ws.on('close', () => {
-    console.log(`[${new Date().toISOString()}] WebSocket 客户端关闭`);
+  ws.on('message', (data) => {
+    console.log(`[${new Date().toISOString()}] 客户端发送: ${data}`);
+    if (wsTarget.readyState === WebSocket.OPEN) {
+      wsTarget.send(data.toString());
+    } else {
+      console.log(`[${new Date().toISOString()}] 目标 WebSocket 未打开，状态: ${wsTarget.readyState}`);
+    }
+  });
+
+  ws.on('close', (code, reason) => {
+    console.log(`[${new Date().toISOString()}] WebSocket 客户端关闭: code=${code}, reason=${reason}`);
     wsTarget.close();
   });
 
