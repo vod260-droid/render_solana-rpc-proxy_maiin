@@ -22,9 +22,14 @@ const server = http.createServer(async (req, res) => {
     console.log(`[${new Date().toISOString()}] HTTP 响应: ${proxyRes.status}`);
 
     res.statusCode = proxyRes.status;
+
+    // 透传响应头，但过滤掉可能导致问题的
     for (const [key, value] of proxyRes.headers.entries()) {
+      if (['transfer-encoding', 'content-encoding'].includes(key.toLowerCase())) continue;
       res.setHeader(key, value);
     }
+
+    // 强制设置，避免客户端出错
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Content-Type', proxyRes.headers.get('content-type') || 'application/json');
 
