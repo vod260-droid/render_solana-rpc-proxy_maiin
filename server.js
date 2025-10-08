@@ -9,6 +9,7 @@ let url_all=["https://render-solana-rpc-proxy-2.onrender.com",
             "https://render-solana-rpc-proxy-5.onrender.com",
             'https://api.mainnet-beta.solana.com'];
   const randIndex  = Date.now() % url_all.length;
+console.log("randIndex",randIndex);
   const TARGET_URL = url_all[randIndex];
 //let TARGET_URL = url_all[Math.floor(Math.random() * url_all.length)];
 //const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com';
