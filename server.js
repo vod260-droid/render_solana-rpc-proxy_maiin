@@ -2,7 +2,13 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const fetch = require('node-fetch');
 
-const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com';
+let url_all=["https://render-solana-rpc-proxy-2.onrender.com",
+             "https://render-solana-rpc-proxy-3.onrender.com",
+            "https://render-solana-rpc-proxy-4.onrender.com",
+            "https://render-solana-rpc-proxy-5.onrender.com",
+            'https://api.mainnet-beta.solana.com'];
+let TARGET_URL = url_all[Math.floor(Math.random() * url_all.length)];
+//const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com';
 const PORT = process.env.PORT || 8080;
 
 const server = http.createServer(async (req, res) => {
