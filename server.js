@@ -1,6 +1,7 @@
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const fetch = require('node-fetch');
+const crypto = require("crypto");
 
 let url_all=["https://render-solana-rpc-proxy-2.onrender.com",
              "https://render-solana-rpc-proxy-3.onrender.com",
