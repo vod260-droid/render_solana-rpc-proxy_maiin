@@ -9,13 +9,14 @@ let url_all=["https://render-solana-rpc-proxy-2.onrender.com",
             "https://render-solana-rpc-proxy-5.onrender.com",
             'https://api.mainnet-beta.solana.com'];
   const randIndex  = Date.now() % url_all.length;
-console.log("randIndex",randIndex);
-  const TARGET_URL = url_all[randIndex];
+//console.log("randIndex",randIndex);
+ // const TARGET_URL = url_all[randIndex];
 //let TARGET_URL = url_all[Math.floor(Math.random() * url_all.length)];
 //const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com';
 const PORT = process.env.PORT || 8080;
 
 const server = http.createServer(async (req, res) => {
+  let TARGET_URL = url_all[Math.floor(Math.random() * url_all.length)];
   const url = new URL(req.url, `http://${req.headers.host}`);
   const targetUrl = TARGET_URL + url.pathname + url.search;
   console.log(`[${new Date().toISOString()}] HTTP 请求: ${req.method} ${targetUrl}`);
@@ -55,6 +56,7 @@ const server = http.createServer(async (req, res) => {
 const wss = new WebSocketServer({ server });
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  let TARGET_URL = url_all[Math.floor(Math.random() * url_all.length)];
   const targetWsUrl = TARGET_URL.replace('https://', 'wss://') + url.pathname + url.search;
   console.log(`[${new Date().toISOString()}] WebSocket 连接: ${targetWsUrl}`);
 
