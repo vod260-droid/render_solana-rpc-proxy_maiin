@@ -7,7 +7,9 @@ let url_all=["https://render-solana-rpc-proxy-2.onrender.com",
             "https://render-solana-rpc-proxy-4.onrender.com",
             "https://render-solana-rpc-proxy-5.onrender.com",
             'https://api.mainnet-beta.solana.com'];
-let TARGET_URL = url_all[Math.floor(Math.random() * url_all.length)];
+  const randIndex = crypto.randomInt(0, url_all.length);
+  const TARGET_URL = url_all[randIndex];
+//let TARGET_URL = url_all[Math.floor(Math.random() * url_all.length)];
 //const TARGET_URL = process.env.TARGET_URL || 'https://api.mainnet-beta.solana.com';
 const PORT = process.env.PORT || 8080;
 
